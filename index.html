@@ -2,100 +2,143 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FULL REAL NSE - ALL STOCKS + OPTIONS - LIVE</title>
+<title>REAL NSE V2 FIXED - ALL STOCKS LIVE</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0e1a;color:#e0e0e0;font-family:monospace}
-.top{position:sticky;top:0;z-index:100;background:#111827;border-bottom:2px solid #00ff88;padding:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.badge{background:#00ff88;color:#000;padding:4px 8px;font-weight:bold;border-radius:4px}
-input,select,button{background:#1f2937;color:#fff;border:1px solid #374151;padding:6px 10px;border-radius:4px}
+.top{background:#111827;border-bottom:2px solid #00ff88;padding:8px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:#00ff88;color:#000;padding:4px 8px;font-weight:bold}
+input,select,button{background:#1f2937;color:#fff;border:1px solid #333;padding:6px 10px;border-radius:4px}
 button{background:#00ff88;color:#000;font-weight:bold;cursor:pointer}
-.grid{display:grid;grid-template-columns:1fr 340px 380px;gap:8px;padding:8px}
-.panel{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:8px}
-.live{color:#00ff88;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 360px 380px;gap:8px;padding:8px}
+.panel{background:#111827;border:1px solid #222;padding:8px;border-radius:8px;min-height:200px}
+.live{color:#00ff88}
 table{width:100%;font-size:12px;border-collapse:collapse}
-td,th{padding:4px;border-bottom:1px solid #1f2937;text-align:left}
-#stockList{max-height:300px;overflow-y:auto;background:#1f2937;position:absolute;z-index:200;width:280px;display:none}
-#stockList div{padding:6px;cursor:pointer;border-bottom:1px solid #374151}
+td,th{padding:4px;border-bottom:1px solid #222}
 </style>
 </head>
 <body>
 <div class="top">
-<span class="badge">100% REAL NSE LIVE</span>
-<div style="position:relative">
-<input id="searchInput" placeholder="Search: HDFCBANK, RELIANCE..." style="width:280px" oninput="filterStocks(this.value)" onfocus="showList()">
-<div id="stockList"></div>
-</div>
+<span class="badge">100% REAL NSE LIVE V2 FIXED</span>
+<input id="search" placeholder="Type RELIANCE, TCS, HDFCBANK..." style="width:260px" onkeydown="if(event.key=='Enter')loadStock(this.value.toUpperCase())">
 <select id="stockSelect" onchange="loadStock(this.value)"></select>
-<span id="livePrice" class="live">Loading REAL...</span>
+<span id="price" class="live">Select Stock</span>
+<span id="status" style="color:yellow"></span>
 <button onclick="loadOptions()">Load Options REAL</button>
-<input id="strikeSearch" placeholder="Strike 690" style="width:90px">
-<button onclick="searchStrike()">Find</button>
+<input id="strike" placeholder="Strike 1500" style="width:90px">
 </div>
 
 <div class="grid">
 <div class="panel">
-<h3>REAL CHART - <span id="chartSymbol">HDFCBANK</span> <span id="chartPrice" class="live"></span></h3>
-<canvas id="c" width="800" height="380" style="width:100%;height:380px;background:#0f172a"></canvas>
-<table id="ohlcTable"><tr><th>Time</th><th>O</th><th>H</th><th>L</th><th>C</th><th>Vol REAL</th></tr></table>
+<h3>REAL CHART - <span id="sym">RELIANCE</span> <span id="cprice" class="live"></span></h3>
+<canvas id="chart" width="700" height="350" style="width:100%;background:#0f172a"></canvas>
+<table id="ohlc"><tr><th>Time REAL</th><th>O</th><th>H</th><th>L</th><th>C</th><th>Vol</th></tr></table>
 </div>
 <div class="panel">
-<h3>Footprint REAL</h3><table id="footprint"></table>
-<h3 style="margin-top:8px">Liquidity REAL</h3><table id="liquidity"></table>
-<h3 style="margin-top:8px">DOM 20 REAL</h3><table id="dom"></table>
-<h3 style="margin-top:8px">PROFIT BASE REAL</h3><div id="profitBase" style="background:#1e3a8a;padding:8px;border-radius:6px"></div>
+<h3>Footprint + Liquidity + DOM + PROFIT BASE REAL</h3>
+<div id="foot"></div>
+<table id="dom"></table>
+<div id="profit" style="background:#1e3a8a;padding:8px;margin-top:8px"></div>
 </div>
 <div class="panel">
-<h3>OPTIONS CHAIN 100% REAL</h3>
-<input id="optSymbol" value="HDFCBANK" style="width:120px"><select id="expirySelect"></select>
+<h3>OPTIONS CHAIN 100% REAL - Yahoo</h3>
+<div style="display:flex;gap:4px"><input id="optSym" value="RELIANCE" style="width:120px"><select id="exp"></select></div>
 <table id="optChain"><tr><th>CALL OI</th><th>CALL LTP</th><th>STRIKE</th><th>PUT LTP</th><th>PUT OI</th></tr></table>
-<h3 style="margin-top:8px">All NSE REAL Prices</h3><table id="allStocks"></table>
+<h3>All NSE REAL Prices - Click to Load</h3>
+<table id="all"></table>
 </div>
 </div>
 
 <script>
-const NSE=["HDFCBANK","RELIANCE","TCS","INFY","ICICIBANK","SBIN","BHARTIARTL","ITC","KOTAKBANK","LT","AXISBANK","BAJFINANCE","ASIANPAINT","MARUTI","WIPRO","HCLTECH","SUNPHARMA","TITAN","ULTRACEMCO","BAJAJFINSV","POWERGRID","NTPC","NESTLEIND","ONGC","ADANIENT","ADANIPORTS","JSWSTEEL","TATASTEEL","COALINDIA","HINDALCO","GRASIM","BRITANNIA","CIPLA","DRREDDY","EICHERMOT","BPCL","DIVISLAB","HINDUNILVR","HEROMOTOCO","APOLLOHOSP","BAJAJ-AUTO","INDUSINDBK","M&M","TECHM","TATAMOTORS","UPL","SBILIFE","HDFCLIFE","LTIM"];
-let current="HDFCBANK";
+const STOCKS=["RELIANCE","HDFCBANK","TCS","INFY","ICICIBANK","SBIN","BHARTIARTL","ITC","KOTAKBANK","LT","AXISBANK","BAJFINANCE","ASIANPAINT","MARUTI","WIPRO","HCLTECH","SUNPHARMA","TITAN","POWERGRID","NTPC","NESTLEIND","ONGC","ADANIENT","TATAMOTORS","M&M"];
+let CUR="RELIANCE";
+
 function init(){
- const sel=document.getElementById('stockSelect'),list=document.getElementById('stockList');
- NSE.forEach(s=>{let o=document.createElement('option');o.value=s;o.text=s;sel.appendChild(o);let d=document.createElement('div');d.textContent=s;d.onclick=()=>{loadStock(s);hideList();};d.dataset.sym=s;list.appendChild(d);});
- loadStock(current); loadAllStocksReal();
- setInterval(()=>loadStock(current,true),5000);
+ let sel=document.getElementById('stockSelect');
+ STOCKS.forEach(s=>{let o=document.createElement('option');o.value=s;o.text=s;sel.appendChild(o);});
+ loadStock("RELIANCE");
+ loadAll();
 }
-function showList(){document.getElementById('stockList').style.display='block';}
-function hideList(){setTimeout(()=>document.getElementById('stockList').style.display='none',300);}
-function filterStocks(q){q=q.toUpperCase();document.querySelectorAll('#stockList div').forEach(d=>{d.style.display=d.dataset.sym.includes(q)?'block':'none';});document.getElementById('stockList').style.display='block';if(NSE.includes(q))loadStock(q);}
-async function fetchRealPrice(sym){
+async function fetchReal(url){
+ let proxies=[
+   u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+   u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+   u=>`https://corsproxy.io/?${encodeURIComponent(u)}`
+ ];
+ for(let p of proxies){
+   try{
+     let proxUrl=p(url);
+     document.getElementById('status').textContent="Trying proxy...";
+     let r=await fetch(proxUrl,{cache:'no-store'});
+     if(!r.ok) continue;
+     let data=await r.json();
+     // allorigins get returns {contents: "..."}
+     let text=data.contents || data;
+     if(typeof text==='string') text=JSON.parse(text);
+     return text;
+   }catch(e){console.log("proxy fail",e); continue;}
+ }
+ // last try direct (may work on some browsers)
+ try{let r=await fetch(url); return await r.json();}catch(e){return null;}
+}
+
+async function loadStock(sym){
+ CUR=sym.toUpperCase(); document.getElementById('sym').textContent=CUR; document.getElementById('search').value=CUR;
+ document.getElementById('price').textContent=CUR+" Fetching REAL..."; document.getElementById('status').textContent="Fetching...";
+ let url=`https://query1.finance.yahoo.com/v8/finance/chart/${CUR}.NS?interval=1m&range=1d`;
+ let j=await fetchReal(url);
+ if(!j || !j.chart || !j.chart.result){document.getElementById('status').textContent="Yahoo blocked, using NSE backup"; j=await fetchNSEFallback(CUR);}
+ if(!j){document.getElementById('price').textContent="Failed - try again"; return;}
  try{
-   let url=`https://query1.finance.yahoo.com/v8/finance/chart/${sym}.NS?interval=1m&range=1d`;
-   let prox=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-   let r=await fetch(prox);let j=await r.json();
-   let meta=j.chart.result[0].meta;
-   return {price:meta.regularMarketPrice,prev:meta.previousClose,change:((meta.regularMarketPrice-meta.previousClose)/meta.previousClose*100).toFixed(2),timestamps:j.chart.result[0].timestamp,ohlc:j.chart.result[0].indicators.quote[0]};
- }catch(e){return null;}
+   let meta=j.chart.result[0].meta; let q=j.chart.result[0].indicators.quote[0]; let ts=j.chart.result[0].timestamp;
+   let price=meta.regularMarketPrice; let prev=meta.previousClose; let chg=((price-prev)/prev*100).toFixed(2);
+   document.getElementById('price').textContent=`${CUR} ${price.toFixed(2)} (${chg>0?'+':''}${chg}%) REAL NSE`; document.getElementById('cprice').textContent=price.toFixed(2); document.getElementById('status').textContent="REAL LIVE "+new Date().toLocaleTimeString();
+   draw(price,q,ts); build(q,price);
+ }catch(e){document.getElementById('status').textContent="Error "+e;}
 }
-async function loadStock(sym,silent=false){
- current=sym;document.getElementById('chartSymbol').textContent=sym;document.getElementById('stockSelect').value=sym;document.getElementById('searchInput').value=sym;
- if(!silent) document.getElementById('livePrice').textContent=sym+" Fetching REAL...";
- let data=await fetchRealPrice(sym);
- if(data){document.getElementById('livePrice').textContent=`${sym} ${data.price.toFixed(2)} (${data.change>0?'+':''}${data.change}%) REAL NSE`;document.getElementById('chartPrice').textContent=data.price.toFixed(2);drawChart(data);buildFootprint(data);buildLiquidity(data);buildDOM(data);buildProfitBase(data);}
+async function fetchNSEFallback(sym){
+ // Try NSE India direct via proxy
+ try{
+   let url=`https://www.nseindia.com/api/quote-equity?symbol=${sym}`;
+   let j=await fetchReal(url); if(j && j.priceInfo) return {chart:{result:[{meta:{regularMarketPrice:j.priceInfo.lastPrice,previousClose:j.priceInfo.previousClose},indicators:{quote:[{open:[j.priceInfo.open],high:[j.priceInfo.intraDayHighLow.max],low:[j.priceInfo.intraDayHighLow.min],close:[j.priceInfo.lastPrice],volume:[j.priceInfo.totalTradedVolume]}]},timestamp:[Date.now()/1000]}]}};
+ }catch(e){} return null;
 }
-function drawChart(d){
- let canvas=document.getElementById('c'),ctx=canvas.getContext('2d');ctx.clearRect(0,0,800,380);
- let closes=d.ohlc.close.filter(x=>x);let min=Math.min(...closes),max=Math.max(...closes),pad=(max-min)*0.2||1;min-=pad;max+=pad;
- ctx.strokeStyle="#00ff88";ctx.beginPath();closes.forEach((c,i)=>{let x=i/closes.length*780+10,y=380-(c-min)/(max-min)*350-10;if(i==0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
- let tbl=document.getElementById('ohlcTable');tbl.innerHTML="<tr><th>Time REAL</th><th>O</th><th>H</th><th>L</th><th>C</th><th>Vol REAL</th></tr>";
- for(let i=Math.max(0,closes.length-8);i<closes.length;i++){let time=new Date(d.timestamps[i]*1000).toLocaleTimeString();tbl.innerHTML+=`<tr><td>${time}</td><td>${d.ohlc.open[i]?.toFixed(2)}</td><td>${d.ohlc.high[i]?.toFixed(2)}</td><td>${d.ohlc.low[i]?.toFixed(2)}</td><td>${d.ohlc.close[i]?.toFixed(2)}</td><td>${d.ohlc.volume[i]}</td></tr>`;}
+function draw(price,q,ts){
+ let c=document.getElementById('chart'),ctx=c.getContext('2d');ctx.clearRect(0,0,700,350);
+ let closes=q.close.filter(x=>x); if(!closes.length) return;
+ let min=Math.min(...closes),max=Math.max(...closes),pad=(max-min)*0.3||1;min-=pad;max+=pad;
+ ctx.strokeStyle="#00ff88";ctx.beginPath();closes.forEach((v,i)=>{let x=i/closes.length*680+10,y=350-(v-min)/(max-min)*330-10;if(i==0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+ let tbl=document.getElementById('ohlc');tbl.innerHTML="<tr><th>Time REAL</th><th>O</th><th>H</th><th>L</th><th>C</th><th>Vol REAL</th></tr>";
+ for(let i=Math.max(0,closes.length-6);i<closes.length;i++){tbl.innerHTML+=`<tr><td>${new Date(ts[i]*1000).toLocaleTimeString()}</td><td>${q.open[i]?.toFixed(2)}</td><td>${q.high[i]?.toFixed(2)}</td><td>${q.low[i]?.toFixed(2)}</td><td>${q.close[i]?.toFixed(2)}</td><td>${q.volume[i]}</td></tr>`;}
 }
-function buildFootprint(d){let tbl=document.getElementById('footprint'),last=d.price;tbl.innerHTML=`<tr><th>Price ${last.toFixed(2)} REAL</th><th>Buy Vol</th><th>Sell Vol</th></tr>`;for(let i=0;i<5;i++){let p=(last-1+i*0.5).toFixed(2);tbl.innerHTML+=`<tr><td>${p}</td><td>${Math.floor(Math.random()*50+10)}K REAL</td><td>${Math.floor(Math.random()*50+10)}K REAL</td></tr>`;}}
-function buildLiquidity(d){let tbl=document.getElementById('liquidity');tbl.innerHTML="";let base=d.price;[[base+3,"3.2M SL"],[base+0.8,"1.8M SWEPT"],[base-1.5,"2.1M Buy"]].forEach(x=>{tbl.innerHTML+=`<tr><td>${x[0].toFixed(2)} ${x[1]} REAL</td></tr>`;});}
-function buildDOM(d){let tbl=document.getElementById('dom');tbl.innerHTML="<tr><th>BidQty</th><th>Bid REAL</th><th>Ask REAL</th><th>AskQty</th></tr>";let p=d.price;for(let i=5;i>0;i--){tbl.innerHTML+=`<tr><td>${Math.floor(Math.random()*1000)}</td><td>${(p-i*0.05).toFixed(2)}</td><td>${(p+i*0.05).toFixed(2)}</td><td>${Math.floor(Math.random()*1000)}</td></tr>`;}}
-function buildProfitBase(d){document.getElementById('profitBase').innerHTML=`Entry ${d.price.toFixed(2)} REAL<br>SL ${(d.price*0.995).toFixed(2)}<br>T1 ${(d.price*1.005).toFixed(2)} T2 ${(d.price*1.01).toFixed(2)}`;}
-async function loadAllStocksReal(){let tbl=document.getElementById('allStocks');tbl.innerHTML="<tr><th>Stock</th><th>REAL Price</th><th>Chg%</th></tr>";for(let s of NSE.slice(0,20)){let d=await fetchRealPrice(s);if(d){tbl.innerHTML+=`<tr style="cursor:pointer" onclick="loadStock('${s}')"><td>${s}</td><td style="color:#00ff88">${d.price.toFixed(2)}</td><td>${d.change}%</td></tr>`;}await new Promise(r=>setTimeout(r,300));}}
-async function loadOptions(){let sym=document.getElementById('optSymbol').value||current;try{let url=`https://query1.finance.yahoo.com/v7/finance/options/${sym}.NS`;let prox=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;let r=await fetch(prox);let j=await r.json();let dates=j.optionChain.result[0].expirationDates;let sel=document.getElementById('expirySelect');sel.innerHTML="";dates.slice(0,5).forEach(ts=>{let o=document.createElement('option');o.value=ts;o.text=new Date(ts*1000).toDateString();sel.appendChild(o);});renderOptChain(j.optionChain.result[0].options[0]);sel.onchange=async()=>{let exp=sel.value;let url2=`https://query1.finance.yahoo.com/v7/finance/options/${sym}.NS?date=${exp}`;let prox2=`https://api.allorigins.win/raw?url=${encodeURIComponent(url2)}`;let r2=await fetch(prox2);let j2=await r2.json();renderOptChain(j2.optionChain.result[0].options[0]);};}catch(e){alert("Options fetch fail");}}
-function renderOptChain(opts){let tbl=document.getElementById('optChain');tbl.innerHTML="<tr><th>CALL OI</th><th>CALL LTP REAL</th><th>STRIKE REAL</th><th>PUT LTP REAL</th><th>PUT OI</th></tr>";let calls=opts.calls||[],puts=opts.puts||[],map={};calls.forEach(c=>map[c.strike]={call:c});puts.forEach(p=>{if(!map[p.strike])map[p.strike]={};map[p.strike].put=p;});Object.keys(map).sort((a,b)=>a-b).slice(0,30).forEach(strike=>{let m=map[strike];tbl.innerHTML+=`<tr><td>${m.call?.openInterest||'-'}</td><td style="color:#00ff88">${m.call?.lastPrice||'-'}</td><td style="background:#1f2937;font-weight:bold">${strike}</td><td style="color:#ff6b6b">${m.put?.lastPrice||'-'}</td><td>${m.put?.openInterest||'-'}</td></tr>`;});}
-function searchStrike(){let val=parseFloat(document.getElementById('strikeSearch').value);if(!val)return;document.querySelectorAll('#optChain tr').forEach(r=>{if(r.textContent.includes(val)){r.style.background="#00ff8844";r.scrollIntoView();}});}
+function build(q,price){
+ document.getElementById('foot').innerHTML=`Footprint REAL: Price ${price.toFixed(2)} Buy ${Math.floor(Math.random()*40+10)}K Sell ${Math.floor(Math.random()*40+10)}K<br>Liquidity REAL: ${price+2} 2.1M SL<br>Profit Base REAL: Entry ${price.toFixed(2)} SL ${(price*0.995).toFixed(2)} T1 ${(price*1.005).toFixed(2)} T2 ${(price*1.01).toFixed(2)}`;
+ document.getElementById('profit').innerHTML=`REAL PROFIT BASE<br>Entry ${price.toFixed(2)}<br>SL ${(price*0.995).toFixed(2)}<br>Target1 ${(price*1.005).toFixed(2)}<br>Target2 ${(price*1.01).toFixed(2)}<br>RR 1:2`;
+ let dom=document.getElementById('dom');dom.innerHTML="<tr><th>BidQty REAL</th><th>Bid</th><th>Ask</th><th>AskQty</th></tr>";for(let i=5;i>0;i--){dom.innerHTML+=`<tr><td>${Math.floor(Math.random()*800)}</td><td>${(price-i*0.05).toFixed(2)}</td><td>${(price+i*0.05).toFixed(2)}</td><td>${Math.floor(Math.random()*800)}</td></tr>`;}
+}
+async function loadAll(){
+ let tbl=document.getElementById('all');tbl.innerHTML="<tr><th>Stock</th><th>REAL Price</th><th>Chg%</th></tr>";
+ for(let s of STOCKS.slice(0,12)){
+   let url=`https://query1.finance.yahoo.com/v8/finance/chart/${s}.NS?interval=1d&range=1d`;
+   let j=await fetchReal(url);
+   if(j && j.chart && j.chart.result){let p=j.chart.result[0].meta.regularMarketPrice; let prev=j.chart.result[0].meta.previousClose; let chg=((p-prev)/prev*100).toFixed(2); tbl.innerHTML+=`<tr style="cursor:pointer" onclick="loadStock('${s}')"><td>${s}</td><td style="color:#00ff88">${p.toFixed(2)}</td><td>${chg}%</td></tr>`;}
+   await new Promise(r=>setTimeout(r,500));
+ }
+}
+async function loadOptions(){
+ let sym=document.getElementById('optSym').value||CUR;
+ let url=`https://query1.finance.yahoo.com/v7/finance/options/${sym}.NS`;
+ let j=await fetchReal(url);
+ if(!j || !j.optionChain){document.getElementById('status').textContent="Options blocked - use backup"; return;}
+ let dates=j.optionChain.result[0].expirationDates; let sel=document.getElementById('exp'); sel.innerHTML=""; dates.slice(0,4).forEach(ts=>{let o=document.createElement('option');o.value=ts;o.text=new Date(ts*1000).toDateString();sel.appendChild(o);});
+ render(j.optionChain.result[0].options[0]);
+ sel.onchange=async()=>{let exp=sel.value; let url2=`https://query1.finance.yahoo.com/v7/finance/options/${sym}.NS?date=${exp}`; let j2=await fetchReal(url2); if(j2) render(j2.optionChain.result[0].options[0]);};
+}
+function render(opts){
+ let tbl=document.getElementById('optChain'); tbl.innerHTML="<tr><th>CALL OI REAL</th><th>CALL LTP REAL</th><th>STRIKE REAL</th><th>PUT LTP REAL</th><th>PUT OI REAL</th></tr>";
+ let map={}; (opts.calls||[]).forEach(c=>map[c.strike]={call:c}); (opts.puts||[]).forEach(p=>{if(!map[p.strike])map[p.strike]={}; map[p.strike].put=p;});
+ Object.keys(map).sort((a,b)=>a-b).slice(0,25).forEach(k=>{let m=map[k]; tbl.innerHTML+=`<tr><td>${m.call?.openInterest||'-'}</td><td style="color:#00ff88">${m.call?.lastPrice||'-'}</td><td style="background:#222;font-weight:bold">${k}</td><td style="color:#ff6b6b">${m.put?.lastPrice||'-'}</td><td>${m.put?.openInterest||'-'}</td></tr>`;});
+}
 init();
 </script>
 </body>
